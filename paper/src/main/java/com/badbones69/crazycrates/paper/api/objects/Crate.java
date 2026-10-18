@@ -29,6 +29,7 @@ import org.bukkit.Particle;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
+import com.ryderbelserion.fusion.core.api.enums.Level;
 import org.bukkit.configuration.ConfigurationSection;
 import us.crazycrew.crazycrates.api.config.impl.ConfigManager;
 import us.crazycrew.crazycrates.api.config.impl.types.config.crate.CrateKeys;
@@ -45,6 +46,7 @@ import com.badbones69.crazycrates.paper.utils.MiscUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,6 +126,9 @@ public class Crate {
     private String broadcastPermission = "";
 
     private boolean isTrackingOpening = true;
+
+    private final List<PityStep> pitySteps = new ArrayList<>();
+    private String pityMessage = "";
 
     private double sum = 0;
     private double tierSum = 0;
@@ -263,6 +268,8 @@ public class Crate {
         this.prizes = prizes;
 
         this.sum = this.prizes.stream().filter(prize -> prize.getWeight() != -1).mapToDouble(Prize::getWeight).sum();
+
+        loadPity();
 
         this.crateType = crateType;
         this.previewToggle = this.section.getBoolean("Preview.Toggle", false);
@@ -499,6 +506,49 @@ public class Crate {
         return pickPrize(player) != null;
     }
 
+    /**
+     * A pity step: if the player did not get {@code prize} within {@code opens} openings, it is forced.
+     */
+    public record PityStep(int opens, @NotNull String prize) {}
+
+    private void loadPity() {
+        final ConfigurationSection pity = this.section.getConfigurationSection("Pity");
+
+        if (pity == null || !pity.getBoolean("Toggle", false)) return;
+
+        this.pityMessage = pity.getString("Message", "");
+
+        final ConfigurationSection steps = pity.getConfigurationSection("Steps");
+
+        if (steps == null) return;
+
+        for (final String key : steps.getKeys(false)) {
+            final int opens = steps.getInt(key + ".Opens", 0);
+            final String prize = steps.getString(key + ".Prize", "");
+
+            if (opens < 1 || getPrize(prize) == null) {
+                this.platform.getFusion().log(Level.WARNING, "Invalid pity step %s in crate %s (Opens must be > 0 and Prize must be an existing prize section).", key, this.name);
+
+                continue;
+            }
+
+            this.pitySteps.add(new PityStep(opens, prize));
+        }
+
+        this.pitySteps.sort(Comparator.comparingInt(PityStep::opens));
+    }
+
+    /**
+     * @return the pity steps sorted by ascending opens, empty if pity is disabled.
+     */
+    public @NotNull final List<PityStep> getPitySteps() {
+        return this.pitySteps;
+    }
+
+    public @NotNull final String getPityMessage() {
+        return this.pityMessage;
+    }
+
     public @NotNull final List<String> getPrizeMessage() {
         return this.prizeMessage;
     }
@@ -544,7 +594,7 @@ public class Crate {
         return getPrize(prizes);
     }
 
-    private boolean validatePrize(@NotNull Player player, Prize prize) { // if this is true at any point, we should continue the loop
+    public boolean validatePrize(@NotNull Player player, Prize prize) { // if this is true at any point, we should continue the loop
         if (prize.getWeight() == -1) return true;
 
         final int pulls = PrizeManager.getCurrentPulls(prize, this);
@@ -568,10 +618,13 @@ public class Crate {
      * @param origin The prizes to check
      * @return {@link Prize}
      */
-    private Prize getPrize(@NotNull final List<Prize> origin) {
-        double totalWeight = this.crateType == CrateType.casino || this.crateType == CrateType.cosmic ? origin.stream().filter(prize -> prize.getWeight() > 0.0).mapToDouble(Prize::getWeight).sum() : this.sum;
-
+    private @Nullable Prize getPrize(@NotNull final List<Prize> origin) {
         final List<Prize> prizes = origin.stream().filter(prize -> prize.getWeight() > 0.0).toList();
+
+        if (prizes.isEmpty()) return null;
+
+        // Weight of the eligible prizes only, otherwise the weight of filtered prizes (blacklist, max pulls) falls on the last prize.
+        final double totalWeight = prizes.stream().mapToDouble(Prize::getWeight).sum();
 
         int index = 0;
 

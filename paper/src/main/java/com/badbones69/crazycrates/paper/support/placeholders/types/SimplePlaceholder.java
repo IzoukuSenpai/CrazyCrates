@@ -2,6 +2,8 @@ package com.badbones69.crazycrates.paper.support.placeholders.types;
 
 import com.badbones69.crazycrates.paper.CrazyCrates;
 import com.badbones69.crazycrates.paper.api.CrazyCratesPaper;
+import com.badbones69.crazycrates.paper.api.PrizeManager;
+import com.badbones69.crazycrates.paper.api.objects.Crate;
 import com.badbones69.crazycrates.paper.support.placeholders.api.AbstractPlaceholder;
 import com.ryderbelserion.fusion.core.utils.StringUtils;
 import org.jspecify.annotations.NonNull;
@@ -67,6 +69,14 @@ public final class SimplePlaceholder implements AbstractPlaceholder {
 
         if (placeholder.equalsIgnoreCase("%s_opened".formatted(reference))) {
             return Optional.of(StringUtils.formatNumber(this.userManager.getCrateOpened(this.uuid, reference)));
+        }
+
+        if (placeholder.equalsIgnoreCase("%s_pity".formatted(reference)) || placeholder.equalsIgnoreCase("%s_pity_remaining".formatted(reference))) {
+            final Crate crate = this.platform.getCrateManager().getCrateFromName(reference);
+
+            if (crate == null || crate.getPitySteps().isEmpty()) return Optional.of("N/A");
+
+            return Optional.of(String.valueOf(placeholder.toLowerCase().endsWith("_remaining") ? PrizeManager.getPityRemaining(this.uuid, crate) : PrizeManager.getPityCount(this.uuid, crate)));
         }
 
         if (placeholder.equalsIgnoreCase("%s_raw".formatted(reference))) {

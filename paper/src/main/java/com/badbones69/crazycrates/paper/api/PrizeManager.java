@@ -26,6 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import us.crazycrew.crazycrates.api.enums.types.CrateType;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class PrizeManager {
@@ -128,10 +129,27 @@ public class PrizeManager {
      * @param prize the player is being given
      */
     public static void givePrize(@NotNull final Player player, @NotNull final Location location, @NotNull final Crate crate, @Nullable Prize prize) {
+        givePrize(player, location, crate, prize, true);
+    }
+
+    /**
+     * Gets the prize for the player.
+     *
+     * @param player who the prize is for
+     * @param location the location
+     * @param crate the player is opening
+     * @param prize the player is being given
+     * @param countPity false to skip the pity system, e.g. for admin/debug gives
+     */
+    public static void givePrize(@NotNull final Player player, @NotNull final Location location, @NotNull final Crate crate, @Nullable Prize prize, final boolean countPity) {
         if (prize == null) {
             fusion.log(Level.WARNING, "No prize was found when giving %s a prize.", player.getName());
 
             return;
+        }
+
+        if (countPity) {
+            prize = applyPity(player, crate, prize);
         }
 
         pluginManager.callEvent(new PlayerPrizeEvent(player, crate, prize));
@@ -259,6 +277,102 @@ public class PrizeManager {
         );
 
         player.sendMessage(fusion.asComponent(player, message, placeholders));
+    }
+
+    private static String pityPath(@NotNull final UUID uuid, @NotNull final Crate crate) {
+        return "Players." + uuid + ".pity." + crate.getFileName();
+    }
+
+    /**
+     * @return the openings counted in the current pity cycle.
+     */
+    public static int getPityCount(@NotNull final UUID uuid, @NotNull final Crate crate) {
+        return FileKeys.data.getConfiguration().getInt(pityPath(uuid, crate) + ".count", 0);
+    }
+
+    /**
+     * @return the openings left before the next pity step, or -1 if pity is disabled.
+     */
+    public static int getPityRemaining(@NotNull final UUID uuid, @NotNull final Crate crate) {
+        final List<Crate.PityStep> steps = crate.getPitySteps();
+
+        if (steps.isEmpty()) return -1;
+
+        final YamlConfiguration configuration = FileKeys.data.getConfiguration();
+        final String path = pityPath(uuid, crate);
+
+        final int count = configuration.getInt(path + ".count", 0);
+        final int reached = Math.min(configuration.getInt(path + ".step", 0), steps.size() - 1);
+
+        return Math.max(steps.get(reached).opens() - count, 0);
+    }
+
+    /**
+     * Counts one opening in the player's pity cycle and swaps the prize if a pity step is due.
+     * A cycle restarts once the last step's prize is obtained, naturally or by pity.
+     * A step is skipped when its prize (or a later step's prize) was obtained naturally during the cycle.
+     */
+    private static @NotNull Prize applyPity(@NotNull final Player player, @NotNull final Crate crate, @NotNull final Prize prize) {
+        final List<Crate.PityStep> steps = crate.getPitySteps();
+
+        if (steps.isEmpty()) return prize;
+
+        final YamlConfiguration configuration = FileKeys.data.getConfiguration();
+        final String path = pityPath(player.getUniqueId(), crate);
+
+        final int count = configuration.getInt(path + ".count", 0) + 1;
+
+        // steps[0 .. reached-1] are already obtained in this cycle.
+        int reached = Math.clamp(configuration.getInt(path + ".step", 0), 0, steps.size());
+
+        for (int index = steps.size(); index > reached; index--) {
+            if (steps.get(index - 1).prize().equalsIgnoreCase(prize.getSectionName())) {
+                reached = index;
+
+                break;
+            }
+        }
+
+        Prize result = prize;
+        boolean forced = false;
+
+        // Highest due step wins, so a step 2 can "evolve" a pending step 1.
+        for (int index = steps.size(); index > reached; index--) {
+            final Crate.PityStep step = steps.get(index - 1);
+
+            if (count < step.opens()) continue;
+
+            final Prize pityPrize = crate.getPrize(step.prize());
+
+            // Unavailable for now (blacklist, max pulls...): retried on the next opening.
+            if (pityPrize == null || crate.validatePrize(player, pityPrize)) continue;
+
+            result = pityPrize;
+            reached = index;
+            forced = true;
+
+            break;
+        }
+
+        if (reached >= steps.size()) {
+            configuration.set(path, null);
+        } else {
+            configuration.set(path + ".count", count);
+            configuration.set(path + ".step", reached);
+        }
+
+        FileKeys.data.save();
+
+        if (forced && !crate.getPityMessage().isEmpty()) {
+            player.sendMessage(fusion.asComponent(player, crate.getPityMessage(), Map.of(
+                    "%player%", player.getName(),
+                    "%crate%", crate.getCrateName(),
+                    "%reward%", result.getPrizeName(),
+                    "%opens%", String.valueOf(count)
+            )));
+        }
+
+        return result;
     }
 
     public static int getCurrentPulls(final Prize prize, final Crate crate) {

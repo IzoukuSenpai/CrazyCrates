@@ -8,26 +8,15 @@ import com.badbones69.crazycrates.paper.cache.CacheManager;
 import com.badbones69.crazycrates.paper.managers.BukkitUserManager;
 import com.badbones69.crazycrates.paper.managers.InventoryManager;
 import com.badbones69.crazycrates.paper.tasks.crates.CrateManager;
-import com.badbones69.crazycrates.paper.tasks.menus.CrateMainMenu;
-import com.badbones69.crazycrates.paper.utils.MiscUtils;
-import com.ryderbelserion.fusion.core.api.enums.Level;
 import com.ryderbelserion.fusion.core.utils.StringUtils;
 import com.ryderbelserion.fusion.paper.FusionPaper;
-import com.ryderbelserion.fusion.paper.builders.gui.GuiBuilder;
 import me.clip.placeholderapi.PlaceholderAPI;
-import net.kyori.adventure.sound.Sound;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import us.crazycrew.crazycrates.api.config.impl.ConfigManager;
-import us.crazycrew.crazycrates.api.config.impl.types.config.gui.GuiKeys;
-import us.crazycrew.crazycrates.api.config.impl.types.config.gui.beans.ButtonConfig;
-import us.crazycrew.crazycrates.api.config.impl.types.config.gui.beans.ButtonPlacement;
 import us.crazycrew.crazycrates.api.config.properties.PropertyManager;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import static java.util.regex.Matcher.quoteReplacement;
 
 public abstract class InventoryBuilder {
 
@@ -55,50 +44,6 @@ public abstract class InventoryBuilder {
 
     protected final InventoryManager inventoryManager = this.platform.getInventoryManager();
 
-    public void addMenuButton(@NotNull final Player player, @NotNull final Crate crate, @NotNull final GuiBuilder gui) {
-        if (!this.pluginConfig.getProperty(GuiKeys.is_crate_menu_enabled)) return;
-
-        final ButtonConfig config = this.pluginConfig.getProperty(GuiKeys.gui_menu_button);
-        final ButtonPlacement placement = config.getPlacement();
-
-        final int row = placement.getRow();
-        final int column = placement.getColumn();
-
-        final int rows = gui.getRows();
-
-        final int safeRow = Math.min(row == -1 ? rows : row, rows);
-
-        final ItemStack itemStack = this.inventoryManager.getMenuButton(player);
-
-        if (itemStack.isEmpty()) {
-            return;
-        }
-
-        gui.addSlotAction(safeRow, column, itemStack, _ -> {
-            if (this.pluginConfig.getProperty(GuiKeys.menu_button_override)) {
-                final List<String> commands = this.pluginConfig.getProperty(GuiKeys.menu_button_command_list);
-
-                if (!commands.isEmpty()) {
-                    commands.forEach(value -> {
-                        final String command = value.replaceAll("%player%", quoteReplacement(player.getName())).replaceAll("%crate%", quoteReplacement(crate.getFileName()));
-
-                        MiscUtils.sendCommand(command);
-                    });
-
-                    return;
-                }
-
-                this.fusion.log(Level.WARNING, "The property %s is empty, so no commands were run.", "");
-
-                return;
-            }
-
-            crate.playSound(player, player.getLocation(), "click-sound", "ui.button.click", Sound.Source.MASTER);
-
-            new CrateMainMenu(player, this.pluginConfig.getProperty(GuiKeys.crate_menu_inventory_name), this.pluginConfig.getProperty(GuiKeys.crate_menu_inventory_rows)).open();
-        });
-    }
-
     public final String parse(@NotNull final Player player, @NotNull final String title) {
         return Plugins.placeholder_api.isEnabled() ? PlaceholderAPI.setPlaceholders(player, title) : title;
     }
@@ -121,15 +66,15 @@ public abstract class InventoryBuilder {
 
             final int opened = this.userManager.getCrateOpened(uuid, fileName);
 
-            safe = this.fusion.replacePlaceholders(option, Map.of(
+            safe = this.fusion.replacePlaceholders(safe, Map.of(
                     "%{}%".replace("{}", crateName), StringUtils.formatNumber(virtual),
                     "%{}_physical%".replace("{}", crateName), StringUtils.format(physical),
-                    "%{}_total%", StringUtils.format(total),
-                    "%{}_opened%", StringUtils.format(opened),
-                    "%{}_raw%", String.valueOf(virtual),
-                    "%{}_raw_physical", String.valueOf(physical),
-                    "%{}_raw_total%", String.valueOf(total),
-                    "%{}_raw_opened%", String.valueOf(opened)
+                    "%{}_total%".replace("{}", crateName), StringUtils.format(total),
+                    "%{}_opened%".replace("{}", crateName), StringUtils.format(opened),
+                    "%{}_raw%".replace("{}", crateName), String.valueOf(virtual),
+                    "%{}_raw_physical%".replace("{}", crateName), String.valueOf(physical),
+                    "%{}_raw_total%".replace("{}", crateName), String.valueOf(total),
+                    "%{}_raw_opened%".replace("{}", crateName), String.valueOf(opened)
             ));
         }
 

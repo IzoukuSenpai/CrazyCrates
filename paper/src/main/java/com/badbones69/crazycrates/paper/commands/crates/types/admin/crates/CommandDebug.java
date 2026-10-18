@@ -42,11 +42,11 @@ public class CommandDebug extends BaseCommand {
         }
 
         if (sender instanceof Player player && target == null) {
-            prizes.forEach(prize -> PrizeManager.givePrize(player, crate, prize));
+            prizes.forEach(prize -> PrizeManager.givePrize(player, player.getLocation().clone().add(0, 1, 0), crate, prize, false));
 
             return;
         }
 
-        prizes.forEach(prize -> PrizeManager.givePrize(target, crate, prize));
+        prizes.forEach(prize -> PrizeManager.givePrize(target, target.getLocation().clone().add(0, 1, 0), crate, prize, false));
     }
 }
