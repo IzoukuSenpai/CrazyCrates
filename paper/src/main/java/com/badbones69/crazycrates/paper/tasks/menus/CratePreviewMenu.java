@@ -1,5 +1,6 @@
 package com.badbones69.crazycrates.paper.tasks.menus;
 
+import com.badbones69.crazycrates.paper.api.PityManager;
 import com.badbones69.crazycrates.paper.api.builders.gui.DynamicInventoryBuilder;
 import com.badbones69.crazycrates.paper.api.objects.Crate;
 import com.badbones69.crazycrates.paper.api.objects.Tier;
@@ -54,6 +55,8 @@ public class CratePreviewMenu extends DynamicInventoryBuilder {
 
             button.getDisplayItem().addItem(this.player, this.gui, crateButton.getSlot(), _ -> button.execute(this.player, placeholders));
         });
+
+        PityManager.addBar(this.player, crate, this.gui);
 
         crate.getPreviewItems(this.player, this.tier).forEach(itemStack -> this.gui.addPageItem(new GuiItem(itemStack)));
 

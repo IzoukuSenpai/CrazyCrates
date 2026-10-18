@@ -17,7 +17,8 @@ import java.util.Optional;
 public enum FileKeys {
 
     respin_gui(FileType.PAPER_YAML, "respin-gui.yml", "guis"),
-    data(FileType.PAPER_YAML, "data.yml");
+    data(FileType.PAPER_YAML, "data.yml"),
+    pity(FileType.PAPER_YAML, "pity.yml");
 
     private final CrazyCrates plugin = CrazyCrates.getPlugin();
     private final CrazyCratesPaper platform = this.plugin.getPlatform();

@@ -299,25 +299,6 @@ Crate:
     "6":
       key: "redglass"
       slot: 53
-  # Pity system (AzurHOSTS fork): guarantees a prize after X openings without getting it.
-  # Steps are sorted by Opens. When a step is reached and its prize was not obtained during the cycle,
-  # the rolled prize is replaced by the step prize (the highest due step wins, so step 2 "evolves" a pending step 1).
-  # Obtaining a step prize naturally also validates it. The cycle restarts once the last step's prize is obtained.
-  # One opening = one prize given (a Quad crate gives 4 prizes, so it counts 4).
-  # Placeholders: %crazycrates_<crate>_pity% (openings in the cycle), %crazycrates_<crate>_pity_remaining% (before next step).
-  Pity:
-    Toggle: false
-    # Available placeholders: %player%, %crate%, %reward%, %opens%
-    Message: "<gold>Pity !</gold> <gray>You got</gray> %reward% <gray>after</gray> <gold>%opens%</gold> <gray>openings.</gray>"
-    Steps:
-      "1":
-        # Openings without getting the prize before it is forced.
-        Opens: 100
-        # Section name of a prize below (Prizes -> "<name>"). Use Weight: 0 on a prize to make it pity-only (never rolled naturally).
-        Prize: "1"
-      "2":
-        Opens: 200
-        Prize: "2"
   # All the prizes that can be obtained in the Crate.
   # These prizes do not require any extra configuration
   # They will give the prizes based on what's already below.

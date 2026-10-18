@@ -1,6 +1,7 @@
 package com.badbones69.crazycrates.paper.support.placeholders;
 
 import com.badbones69.crazycrates.paper.api.CrazyCratesPaper;
+import com.badbones69.crazycrates.paper.api.PityManager;
 import com.badbones69.crazycrates.paper.support.placeholders.types.NamePlaceholder;
 import com.badbones69.crazycrates.paper.support.placeholders.types.SimplePlaceholder;
 import com.ryderbelserion.fusion.core.utils.StringUtils;
@@ -33,6 +34,10 @@ public class PlaceholderAPISupport extends PlaceholderExpansion {
             case "crates_opened" -> {
                 return StringUtils.formatNumber(this.userManager.getTotalCratesOpened(uuid));
             }
+        }
+
+        if (placeholder.startsWith("pity_")) {
+            return PityManager.placeholder(uuid, placeholder.substring("pity_".length())).orElse("N/A");
         }
 
         return new SimplePlaceholder(uuid).get(placeholder).orElseGet(() -> new NamePlaceholder(player).get(placeholder).orElse("N/A"));

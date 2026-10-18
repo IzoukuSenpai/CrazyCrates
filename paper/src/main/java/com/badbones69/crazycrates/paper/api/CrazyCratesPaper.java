@@ -112,6 +112,7 @@ public final class CrazyCratesPaper extends CrazyCratesPlugin<CommandSender, Wor
         super.init();
 
         this.fileManager.addPaperFile(this.path.resolve("data.yml"))
+                .addPaperFile(this.path.resolve("pity.yml"))
                 .addPaperFolder(this.path.resolve("guis"))
                 .addPaperFolder(this.path.resolve("crates"))
 
@@ -199,6 +200,7 @@ public final class CrazyCratesPaper extends CrazyCratesPlugin<CommandSender, Wor
         super.reload();
 
         this.fileManager.addPaperFile(this.path.resolve("data.yml"))
+                .addPaperFile(this.path.resolve("pity.yml"))
                 .addPaperFolder(this.path.resolve("guis"))
                 .addPaperFolder(this.path.resolve("crates"))
 

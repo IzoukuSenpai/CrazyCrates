@@ -1,0 +1,108 @@
+# Pity system - AzurHOSTS fork (https://azurhosts.com)
+#
+# A pool groups one or more crates. Every crate in a pool shares the same pity counter per player,
+# e.g. all free-to-win crates in one pool, premium crates in another (a crate can only be in one pool).
+# One opening = one prize given (a Quad crate gives 4 prizes, so it counts 4). /crates debug gives are ignored.
+#
+# Steps: after X openings without getting the step prize, the rolled prize is replaced by it.
+#  - The highest due step wins, so step 2 "evolves" a pending step 1.
+#  - Getting a step prize naturally validates it (and every lower step).
+#  - The cycle restarts once the last step's prize is obtained (naturally or by pity).
+#  - Use Weight: 0 on a prize in the crate file to make it pity-only (never rolled naturally).
+#
+# Placeholders (bar names/lores, and PlaceholderAPI as %crazycrates_pity_<name>_<pool or crate>%):
+#   %pool%, %current%, %target%, %remaining%, %percent%, %step%, %steps%, %prize%, %previous%
+#   %global_current%, %global_goal%, %global_remaining%, %global_percent%, %contribution%
+#   e.g. %crazycrates_pity_remaining_f2w%, %crazycrates_pity_global_percent_f2w%
+pools:
+  f2w:
+    toggle: false
+    # Crate file names (without .yml) sharing this pool.
+    crates:
+      - CrateExample
+    # Sent to the player when a step is forced. Placeholders: %player%, %crate%, %reward%, %opens%, %pool%
+    message: "<gold>Pity !</gold> <gray>You got</gray> %reward% <gray>after</gray> <gold>%opens%</gold> <gray>openings.</gray>"
+    steps:
+      "1":
+        # Openings in the cycle before the prize is forced.
+        opens: 100
+        # Crate holding the prize (defaults to the first crate of the pool) and its prize section name.
+        crate: CrateExample
+        prize: "1"
+        # Bar style used while this step is the next one (see bar.styles).
+        style: epic
+      "2":
+        opens: 200
+        crate: CrateExample
+        prize: "2"
+        style: legendary
+    # Server-wide goal: every opening in the pool counts for the server.
+    # When the goal is reached, a share of the contributors is drawn and the commands run for each winner.
+    global:
+      toggle: false
+      goal: 10000
+      # Share of contributors who win (10 = 10%), at least min-winners.
+      winners-percent: 10
+      min-winners: 1
+      # Openings needed in this cycle to take part in the draw.
+      min-contribution: 1
+      # Only draw players online when the goal is reached.
+      online-only: false
+      # Run from the console. Placeholders: %player%, %pool%, %contribution%
+      commands:
+        - "crates give virtual CrateExample 1 %player%"
+      winner-message: "<green>You won the server pity reward of %pool% !</green>"
+      # Placeholders: %pool%, %goal%, %winners%, %winner_names%, %contributors%
+      broadcast: "<gold>The server pity %pool% is complete!</gold> <gray>%winners% winners:</gray> <yellow>%winner_names%</yellow>"
+    # Loading bar in the crate preview (/crates preview).
+    # The last slot shows the next pity prize, the other slots are the bar.
+    # With show-previous, the first slot shows the last pity prize obtained (once there is one).
+    bar:
+      toggle: false
+      slots: [ 2, 3, 4, 5, 6 ]
+      show-previous: true
+      # Default name/lore of the bar items, a state can override them with Name/Lore.
+      name: "<gold>Pity <gray>%current%/%target%"
+      lore:
+        - "<gray>Remaining: <yellow>%remaining%</yellow> openings"
+        - "<gray>Next: %prize%"
+        - "<gray>Server: <yellow>%global_current%/%global_goal%</yellow>"
+      # One style per rarity, picked from the next step's "style" (falls back to "default").
+      # Each style has empty/half/full states. Optional start-<state> and end-<state> override the bar edges.
+      # A state accepts the usual crate item options: Item, Custom-Model-Data, Model.Namespace/Id, Glowing, Hide-Flags...
+      styles:
+        default:
+          empty:
+            Item: gray_stained_glass_pane
+          half:
+            Item: yellow_stained_glass_pane
+          full:
+            Item: lime_stained_glass_pane
+        epic:
+          empty:
+            Item: paper
+            Model:
+              Namespace: "azurhosts"
+              Id: "pity_epic_empty"
+          half:
+            Item: paper
+            Model:
+              Namespace: "azurhosts"
+              Id: "pity_epic_half"
+          full:
+            Item: paper
+            Model:
+              Namespace: "azurhosts"
+              Id: "pity_epic_full"
+          start-empty:
+            Item: paper
+            Model:
+              Namespace: "azurhosts"
+              Id: "pity_epic_start_empty"
+        legendary:
+          empty:
+            Item: orange_stained_glass_pane
+          half:
+            Item: yellow_stained_glass_pane
+          full:
+            Item: gold_block

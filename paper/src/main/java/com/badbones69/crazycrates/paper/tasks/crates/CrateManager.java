@@ -77,6 +77,7 @@ import us.crazycrew.crazycrates.api.enums.types.CrateType;
 import us.crazycrew.crazycrates.api.enums.types.KeyType;
 import com.badbones69.crazycrates.paper.api.enums.other.keys.ItemKeys;
 import com.badbones69.crazycrates.paper.support.holograms.HologramManager;
+import com.badbones69.crazycrates.paper.api.PityManager;
 import com.badbones69.crazycrates.paper.api.objects.Crate;
 import com.badbones69.crazycrates.paper.api.objects.crates.CrateLocation;
 import com.badbones69.crazycrates.paper.api.objects.Prize;
@@ -610,6 +611,8 @@ public class CrateManager {
         }
 
         addCrate(new Crate("Menu"));
+
+        PityManager.load();
 
         loadLocations();
 
@@ -1634,7 +1637,8 @@ public class CrateManager {
                 }
             }
 
-            if (hasKeys) {
+            // Keep players with pity progress even without keys, they are the ones who spent them.
+            if (hasKeys || data.contains("Players." + uuid + ".pity")) {
                 crates.forEach(crate -> data.set("Players." + uuid + "." + crate, null));
             } else {
                 removePlayers.add(uuid);
